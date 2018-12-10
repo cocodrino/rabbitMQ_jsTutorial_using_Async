@@ -1,4 +1,4 @@
-const q = "tasks";
+const LOG_EXCHANGE = "logs";
 
 async function consumer() {
   try {
@@ -8,9 +8,19 @@ async function consumer() {
     );
 
     let ch = await con.createChannel();
-    let _ok = await ch.assertQueue(q, { durable: false });
+
+    let _ok = await ch.assertExchange(LOG_EXCHANGE, "fanout", {
+      durable: false
+    });
+
+    //after create our exchange we create an 'anonymous' Queue
+    let q = await ch.assertQueue("", { exclusive: true });
+    console.log(`[*] queue ${q.queue} waiting`);
+    //and bind this (through it generated named using q.queue) to our exchange
+    ch.bindQueue(q.queue, LOG_EXCHANGE, "");
+
     ch.consume(
-      q,
+      q.queue,
       msg => {
         console.log(msg.content.toString());
       },
