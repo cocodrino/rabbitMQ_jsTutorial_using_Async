@@ -1,6 +1,7 @@
 var _ = require("lodash");
 
-const q = "tasks";
+const q = "task_queue";
+const msg = process.argv.slice(2).join(" ") || "hello world!!";
 
 async function amqp() {
   try {
@@ -9,12 +10,9 @@ async function amqp() {
     );
 
     let ch = await con.createChannel();
-    let _ok = await ch.assertQueue(q, { durable: false });
-    ch.sendToQueue(q, Buffer.from("Enviando mensaje"));
-
-    _.range(10).forEach(_e => {
-      ch.sendToQueue(q, Buffer.from("[*] mensaje nro " + _e));
-    });
+    ch.prefetch(1);
+    let _ok = await ch.assertQueue(q, { durable: true });
+    ch.sendToQueue(q, Buffer.from(msg), { persistent: true });
 
     console.log("mensajes enviados");
     return con;
@@ -32,5 +30,5 @@ amqp().then(con => {
   setTimeout(function() {
     con.close();
     process.exit(0);
-  }, 5000);
+  }, 50);
 });
